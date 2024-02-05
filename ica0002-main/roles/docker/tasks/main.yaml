@@ -1,0 +1,6 @@
+- name: Install docker
+  ansible.builtin.apt:
+    name: 
+      - docker.io
+      - python3-docker
+    state: present

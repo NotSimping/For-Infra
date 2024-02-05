@@ -1,0 +1,30 @@
+- name: nginx is installed
+  ansible.builtin.apt:
+    name: 
+      - nginx
+      - prometheus-nginx-exporter
+    state: present
+    
+- name: Nginx configured
+  ansible.builtin.template:
+    src: default.j2
+    dest: /etc/nginx/sites-enabled/default
+    mode: '0644'
+  notify: 
+    - Restart nginx
+    - Restart nginx prometheus
+
+- name: nginx runs and enabled on startup
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - nginx
+    - prometheus-nginx-exporter
+
+- name: assign cnames
+  include_role:
+    name: "cname"
+  vars:
+    service: "www{{inventory_hostname | replace('AlecSimp','')}}"

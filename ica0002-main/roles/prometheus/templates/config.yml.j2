@@ -1,0 +1,64 @@
+global:
+  scrape_interval: 6s
+  evaluation_interval: 6s
+
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+    metrics_path: '/prometheus/metrics'
+    # scheme defaults to '--web.external-url=http://<your_public_http_endpoint>/prometheus'.
+
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: linux                        
+    static_configs:
+      - targets: 
+        {% for host in groups['all'] -%}
+        - {{ host }}:9100
+        {% endfor %}
+
+  - job_name: mysql
+    static_configs:
+      - targets:
+        {% for host in groups['db_servers'] -%}
+        - mysql-{{ host | replace ('AlecSimp-','') }}:9104
+        {% endfor %}
+
+  - job_name: bind9
+    static_configs:
+      - targets:
+        {% for host in groups['dns_server'] -%}
+        - ns-{{ host | replace ('AlecSimp-','') }}:9119
+        {% endfor %}
+
+  - job_name: nginx
+    static_configs:
+      - targets:
+        {% for host in groups['web_servers'] -%}
+        - www-{{ host | replace ('AlecSimp-','') }}:9113
+        {% endfor %}
+
+  - job_name: influxdb exporter
+    static_configs:
+      - targets:
+        - influxdb:9424
+
+  - job_name: keepalived
+    static_configs:
+      - targets:
+        {% for host in groups['keepalived'] -%}
+        - {{ host }}:9165
+        {% endfor %}
+
+  - job_name: haproxy
+    static_configs:
+      - targets:
+        {% for host in groups['keepalived'] -%}
+        - lb-{{ host | replace ('AlecSimp-','') }}:9101
+        {% endfor %}

@@ -1,0 +1,11 @@
+[Unit]
+Description=the about the pinger service
+Documentation= https://github.com/romankuchin/ica0002-2023/blob/main/08-logging/08-files/pinger.service or https://blogs.mtdv.me/httpsdocspingidentitycom
+After=network-online.target
+
+[Service]
+User=pinger
+ExecStart=/usr/local/bin/pinger
+
+[Install]
+WantedBy=multi-user.target

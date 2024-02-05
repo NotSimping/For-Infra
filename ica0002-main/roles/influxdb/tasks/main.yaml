@@ -1,0 +1,99 @@
+- name: Install InfluxDB 1.8 deb package
+  ansible.builtin.get_url: 
+    url: https://dl.influxdata.com/influxdb/releases/influxdb_1.8.10_amd64.deb 
+    dest: /home/ubuntu/influxdb
+    checksum: sha256:b2ace09231575df7309a41cea6f9dc7ad716fe4389dc06ac04470a14bd411456
+
+- name: Install InfluxDB deb file
+  ansible.builtin.apt:
+    deb: /home/ubuntu/influxdb
+    state: present
+
+- name: Run InfluxDB
+  ansible.builtin.service:
+    name: influxdb
+    state: started
+    enabled: true
+
+- name: make dir for apt key
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: get Telegraf repository key
+  ansible.builtin.get_url:
+    url: https://repos.influxdata.com/influxdata-archive.key
+    dest: /etc/apt/keyrings/telegraf.asc
+    mode: '0644'
+
+- name: Add Telegraf repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/telegraf.asc] https://repos.influxdata.com/debian stable main"
+    state: present
+    update_cache: true
+
+- name: Install Telegraf
+  ansible.builtin.apt:
+    name: telegraf=1.28.2-1
+    state: present
+
+- name: Move Telegraf template
+  ansible.builtin.template:
+    src: telegraf.conf
+    dest: /etc/telegraf/telegraf.conf
+    mode: '0644'
+
+- name: Make sure Telegraf is running
+  ansible.builtin.service:
+    name: telegraf
+    state: started
+    enabled: true
+  notify: Restart Telegraf
+
+- name: Install InfluxDB stat exporter from git
+  ansible.builtin.get_url:
+    url: https://github.com/carlpett/influxdb_stats_exporter/releases/download/v0.1.1/influx_stats_exporter_linux_amd64
+    dest: /usr/local/bin/
+    mode: '0500'
+    owner: prometheus
+  notify: Restart Systemctl
+
+- name: Import Influxdb Stat Expo Template
+  ansible.builtin.template:
+    src: inf_stat_expo.service
+    dest: /etc/systemd/system/prometheus-influxdb-stats-exporter.service
+    mode: '0644'
+
+- name: Import Influxdb Conf Template
+  ansible.builtin.template:
+    src: influxdb.conf
+    dest: /etc/influxdb/influxdb.conf
+    mode: '0644'
+  notify: Restart InfluxDB
+
+- name: Make sure exporter is running away!
+  ansible.builtin.service:
+    name: prometheus-influxdb-stats-exporter
+    state: started
+    enabled: true
+
+- name: Make Backup owner of influxDB DIR
+  ansible.builtin.file:
+    path: /home/backup/influxdb
+    state: directory
+    owner: backup
+    mode: '0755'
+
+- name: Make cron backup for Influx
+  ansible.builtin.template:
+    src: influx_cron.conf
+    dest: /etc/cron.d/influx-backup
+    mode: '0777'
+    owner: backup
+
+- name: assign cnames
+  include_role:
+    name: "cname"
+  vars:
+    service: "influxdb"

@@ -1,0 +1,26 @@
+acl ABC { {{ localnet }}; {{ localhost }}; {{ docker_net }};};
+options {
+	directory "/var/cache/bind";
+
+	forwarders { {% for ip in dnsforwarders %}
+		{{ ip }};
+	{% endfor %}
+	};
+	
+    allow-query { ABC; };
+	dnssec-validation no;
+};
+
+statistics-channels {
+  inet 127.0.0.1 port 8053 allow { 127.0.0.1; };
+};
+
+key "transferkey" {
+	algorithm hmac-sha256;
+	secret "{{ secret_key }}";
+};
+
+key "nsupdatekey" {
+    algorithm hmac-sha256;
+    secret "{{ nsupdate_key }}";
+};

@@ -1,0 +1,16 @@
+$TTL    604800
+168.192.in-addr.arpa.    IN    SOA    {{ domain_name }}. AlecSimp.{{ domain_name }}. (
+                  2      ; Serial
+             604800      ; Refresh
+              86400      ; Retry
+            2419200      ; Expire
+             604800 )    ; Negative Cache TTL
+;
+{% for hosts in groups['dns_server'] %}
+168.192.in-addr.arpa. IN   NS  {{ hosts }}.{{ domain_name }}.
+{% endfor %}
+; PTR Records
+{% for host in groups['all'] %}
+{% set host_ip = hostvars[host]['ansible_default_ipv4']['address'].split('.') %}
+{{ host_ip[3] }}.{{ host_ip[2] }} IN PTR {{host}}.{{ domain_name }}.
+{% endfor %}

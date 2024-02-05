@@ -1,0 +1,85 @@
+  - name: Initial setup
+    hosts: all
+    roles:
+      - init
+    tags:
+      - i
+
+  - name: host DNS servers
+    hosts: dns_server
+    roles:
+      - bind
+    tags:
+      - dns
+
+  - name: Setup custom DNS
+    hosts: resolv
+    roles:
+      - resolver
+    tags:
+      - setup
+
+  - name: Prometheus
+    hosts: prometheus
+    roles:
+      - prometheus
+    tags:
+      - prom  
+
+  - name: Grafana
+    hosts: grafana
+    roles:
+      - docker  
+      - grafana
+    tags:
+      - graf
+
+  - name: Data server
+    hosts: db_servers
+    roles:
+      - mysql
+    tags:
+      - db
+
+  - name: InlfuxDB
+    hosts: influx
+    roles:
+      - influxdb
+    tags:
+      - influx
+
+  - name: pinger
+    hosts: pinger
+    roles:
+      - pinger
+    tags:
+      - pin
+
+  - name: keepalived
+    hosts: keepalived
+    roles: 
+      - keepalived
+      - haproxy
+    tags:
+      - ka
+
+  - name: docker
+    hosts: docker
+    roles: 
+      - docker
+    tags: 
+      - docker
+
+  - name: Agama
+    hosts: agama
+    roles: 
+      - agama
+    tags: 
+      - ag
+
+  - name: the web servers
+    hosts: web_servers
+    roles:
+      - nginx
+    tags:
+      - web

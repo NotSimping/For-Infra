@@ -1,0 +1,41 @@
+server {
+
+    listen 80 default_server;
+    server_name _;
+
+    {% if inventory_hostname in groups['db_servers'] %}
+    location / {
+        proxy_pass http://localhost:{{ agama_port }};
+        proxy_set_header Host $http_host;
+    }
+    {% endif %}
+
+    {% if inventory_hostname in groups['prometheus'] %}
+
+    location /prometheus {
+        proxy_pass http://localhost:9090;
+    }
+
+    {% endif %}
+
+    {% if inventory_hostname in groups['grafana'] %}
+
+    location /grafana {
+        proxy_set_header Host $http_host;
+        proxy_pass http://localhost:{{ grafana_port }};
+    }
+
+    {% endif %}
+
+
+}
+
+server {
+
+    listen 8080 default_server;
+
+    location /stub_status {
+        stub_status;
+
+    }
+}

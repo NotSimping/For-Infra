@@ -1,0 +1,5 @@
+- name: Restart container
+  community.docker.docker_container:
+    name: agama
+    restart: true
+    

@@ -1,0 +1,37 @@
+- name: Make agama directory
+  ansible.builtin.file:
+    path: /opt/agama
+    state: directory
+
+- name: Download agama.py
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/hudolejev/agama/master/agama.py
+    dest: /opt/agama/agama.py
+    mode: '0755'
+
+- name: Download docker agama
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/hudolejev/agama/master/Dockerfile
+    dest: /opt/agama/Dockerfile
+    mode: '0755'
+
+- name: Maka Agama Docker Image
+  community.docker.docker_image:
+    name: agama
+    build:
+      path: /opt/agama
+    source: build
+
+- name: Create a data container
+  community.docker.docker_container:
+    name: agama-{{item}}
+    image: agama
+    volumes: /opt/agama:/opt/agama
+    env:
+      AGAMA_DATABASE_URI=mysql+pymysql://{{ mysql_user }}:{{ mysql_password }}@mysql{{ mysql_host | replace ('AlecSimp','')  }}/{{mysql_database}}
+    ports: "{{ agama_port + item }}:8000"
+    state: started
+    restart_policy: always
+  loop: "{{ range(0, container_num) | list }}"
+  no_log: true
+

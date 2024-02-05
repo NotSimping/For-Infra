@@ -1,0 +1,21 @@
+- name: uwsgi
+  ansible.builtin.apt:
+    name:
+      - uwsgi
+      - uwsgi-plugin-python3
+    state: present
+
+- name: Configure host uwsgi
+  ansible.builtin.template:
+    src: agama.ini.j2
+    dest: /etc/uwsgi/apps-enabled/agama.ini
+    owner: agama
+    mode: '0600'
+  no_log: true
+  notify: Restart uwsgi
+
+- name: make sure uwsgi is running
+  ansible.builtin.service:
+    name: uwsgi
+    state: started
+    enabled: true

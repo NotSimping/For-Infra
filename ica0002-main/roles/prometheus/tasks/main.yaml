@@ -1,0 +1,30 @@
+- name: install Prometheus
+  ansible.builtin.apt:
+    name: prometheus
+    state: present
+
+- name: make sure Prometheus is running
+  ansible.builtin.service:
+    name: prometheus
+    state: started
+    enabled: true
+
+- name: run prometheus conf template
+  ansible.builtin.template:
+    dest: /etc/prometheus/prometheus.yml
+    src: config.yml.j2
+    mode: '0644'
+  notify: Restart prometheus
+
+- name: run prometheus web external template
+  ansible.builtin.template:
+    src: metric.yml.j2
+    dest: /etc/default/prometheus
+    mode: '0755'
+  notify: Restart prometheus
+
+- name: assign cnames
+  include_role:
+    name: "cname"
+  vars:
+    service: "prometheus"

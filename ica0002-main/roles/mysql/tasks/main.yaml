@@ -1,0 +1,123 @@
+- name: Install mysql
+  ansible.builtin.apt:
+    name: 
+      - mysql-server
+      - python3-pymysql
+    state: present
+
+- name: Override mysql bind address
+  ansible.builtin.template:
+    src: override.cnf.j2
+    dest: /etc/mysql/mysql.conf.d/override.cnf
+  notify: Restart mysql
+
+- name: Make sure mysql is running
+  ansible.builtin.service:
+    name: mysql
+    state: started
+    enabled: true
+
+- name: MySQL database
+  community.mysql.mysql_db:
+    name: "{{ mysql_database }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  notify:
+    - Reset MySQL source
+    - Reset MySQL replica
+
+- name: MySQL user
+  community.mysql.mysql_user:
+    name: "{{ mysql_user }}"
+    password: "{{ mysql_password }}"
+    host: "%"
+    priv: "{{ mysql_database }}.*:ALL"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  no_log: true
+
+- name: my cnf template
+  ansible.builtin.template:
+    src: .my.conf.j2
+    dest: /var/lib/prometheus/.my.cnf
+    owner: prometheus
+    group: prometheus
+  no_log: true
+  notify: Restart mysql exporter
+
+- name: Run prometheus exporter template
+  ansible.builtin.template:
+    src: mysql_metric.yml.j2
+    dest: /etc/default/prometheus-mysqld-exporter
+    mode: '0755'
+  notify: Restart mysql exporter
+
+- name: MySQL exporter
+  ansible.builtin.apt:
+    name: prometheus-mysqld-exporter
+    state: present
+
+- name: MySQL exporter user
+  community.mysql.mysql_user:
+    name: "{{ exporter_user }}"
+    password: "{{ exporter_password }}"
+    priv: "*.*:PROCESS,REPLICATION CLIENT,SELECT"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  no_log: true
+  notify: Restart mysql exporter
+
+- name: mysql exporter running
+  ansible.builtin.service:
+    name: prometheus-mysqld-exporter
+    state: started
+    enabled: true
+  
+- name: Make Backup owner of MySQL DIR
+  ansible.builtin.file:
+    path: /home/backup/mysql
+    state: directory
+    owner: backup
+    mode: '0755'
+
+- name: MySQL backup user
+  community.mysql.mysql_user:
+    name: "{{ backup_server }}"
+    password: "{{ backup_pass }}"
+    priv: "{{ mysql_database }}.*:LOCK TABLES,SELECT"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  no_log: true
+
+- name: Make Backup Template
+  ansible.builtin.template:
+    src: backup.my.conf
+    dest: /home/backup/.my.cnf
+  no_log: true
+
+- name: Make cron backup sql dump for MySQL
+  ansible.builtin.template:
+    src: le_cron_backup.conf
+    dest: /etc/cron.d/mysql-backup
+    owner: backup
+
+- name: MySQL replication user
+  community.mysql.mysql_user:
+    name: "{{ rep }}"
+    password: "{{ rep_password }}"
+    host: "%"
+    priv: "*.*:REPLICATION SLAVE"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  no_log: true
+
+- name: Set dynamic MySQL parameters
+  community.mysql.mysql_variables:
+    variable: read_only
+    value: "{{ 'OFF' if inventory_hostname == mysql_host else 'ON' }}"
+    mode: persist
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  notify:
+    - Reset MySQL source
+    - Reset MySQL replica
+
+- name: assign cnames
+  include_role:
+    name: "cname"
+  vars:
+    service: "mysql{{inventory_hostname | replace('AlecSimp','')}}"

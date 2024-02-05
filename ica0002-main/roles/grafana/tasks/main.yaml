@@ -1,0 +1,58 @@
+#make the directories and files
+- name: Make directories
+  ansible.builtin.file:
+    name: /opt/grafana/provisioning/{{ item }}
+    state: directory
+  loop:
+      - dashboards
+      - datasources
+
+#copy files
+- name: Copy main json
+  ansible.builtin.copy:
+    src: main.json
+    dest: /opt/grafana/provisioning/dashboards/main.json
+
+- name: Copy mysql json
+  ansible.builtin.copy:
+    src: mysql.json
+    dest: /opt/grafana/provisioning/dashboards/mysql.json
+
+- name: Copy syslog json
+  ansible.builtin.copy:
+    src: syslog.json
+    dest: /opt/grafana/provisioning/dashboards/syslog.json
+
+#move templates
+- name: Move template dashboards
+  ansible.builtin.template:
+    src: dashboards.yaml
+    dest: /opt/grafana/provisioning/dashboards/default.yaml
+
+- name: Move template datasources
+  ansible.builtin.template:
+    src: datasources.yaml
+    dest: /opt/grafana/provisioning/datasources/default.yaml
+
+- name: Move template grafana
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: /opt/grafana/grafana.ini
+  no_log: true
+
+- name: Create a data container
+  community.docker.docker_container:
+    name: grafana
+    image: grafana/grafana
+    volumes: /opt/grafana:/etc/grafana
+    state: started
+    restart_policy: always
+    published_ports: "{{ grafana_port }}:3000"
+  notify: Restart container
+
+- name: assign cnames
+  include_role:
+    name: "cname"
+  vars:
+    service: "grafana"
+    

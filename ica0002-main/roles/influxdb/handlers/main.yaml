@@ -1,0 +1,13 @@
+- name: Restart InfluxDB
+  ansible.builtin.service:
+    name: influxdb
+    state: restarted
+
+- name: Restart Telegraf
+  ansible.builtin.service:
+    name: telegraf
+    state: restarted
+
+- name: Restart Systemctl
+  ansible.builtin.systemd:
+    daemon_reload: true

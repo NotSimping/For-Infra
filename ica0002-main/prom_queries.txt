@@ -1,0 +1,3 @@
+"this is a string"
+'these are unescaped: \n \\ \t'
+`these are not unescaped: \n ' " \t`

@@ -1,0 +1,43 @@
+- name: Create user pinger
+  ansible.builtin.user:
+    name: pinger
+    state: present
+
+- name: install fping
+  ansible.builtin.apt:
+    name: fping
+    state: present
+
+- name: Creat pinger etc directory
+  ansible.builtin.file:
+    path: /etc/pinger/
+    state: directory
+    mode: '0755'
+
+- name: Move pinger conf
+  ansible.builtin.template:
+    src: pinger.conf
+    dest: /etc/pinger/pinger.conf
+    owner: pinger
+    mode: '0644'
+
+- name: Move pinger sh
+  ansible.builtin.template:
+    src: pinger.sh
+    dest: /usr/local/bin/pinger
+    mode: '0744'
+    owner: pinger
+
+- name: Move pinger service
+  ansible.builtin.template:
+    src: pinger.service
+    dest: /etc/systemd/system/
+    mode: '0644'
+    owner: pinger
+  notify: Reload systemctl
+
+- name: Make sure pinger is running away!
+  ansible.builtin.service:
+    name: pinger
+    state: started
+    enabled: true

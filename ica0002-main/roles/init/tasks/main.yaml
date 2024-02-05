@@ -1,0 +1,70 @@
+#- name: Ansible ping module
+#  ansible.builtin.ping:
+
+#- name: Create user juri
+#  ansible.builtin.user:
+#    name: juri
+
+#- name: Create authorized keys for juri
+#  ansible.posix.authorized_key:
+#    user: juri
+#    state: present
+#    key: https://github.com/hudolejev.keys
+
+#- name: Create user roman
+#  ansible.builtin.user:
+#    name: roman
+
+#- name: Create authorized key for roman
+#  ansible.posix.authorized_key:
+#    user: roman
+#    state: present
+#    key: https://github.com/romankuchin.keys
+
+- name: Upadte APT cache
+  ansible.builtin.apt:
+    cache_valid_time: 86400
+
+- name: Install Prometheus node exporter through Init
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+
+- name: Install CA certificates
+  ansible.builtin.apt:
+    name: ca-certificates>=20230311ubuntu0.20.04.1
+
+- name: Move Rsyslog template
+  ansible.builtin.template:
+    src: rsyslog.conf
+    dest: /etc/rsyslog.d/rsyslog.conf
+    mode: '0644'
+  notify: Restart Rsyslog
+
+- name: Make user backup with SSH
+  ansible.builtin.user:
+    name: backup
+    state: present
+    home: /home/backup
+    shell: /bin/bash
+    generate_ssh_key: true
+
+- name: Template backup
+  ansible.builtin.template:
+    src: backup_known_host.j2
+    dest: /home/backup/.ssh/known_hosts
+    owner: backup
+    group: backup
+    mode: '0644'
+
+- name: Make Backup owner of Init DIR
+  ansible.builtin.file:
+    path: /home/backup/restore
+    state: directory
+    owner: backup
+    mode: '0744'
+
+- name: install Duplicity
+  ansible.builtin.apt:
+    name: duplicity
+    state: present

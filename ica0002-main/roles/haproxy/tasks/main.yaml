@@ -1,0 +1,41 @@
+  - name: Install haproxy
+    ansible.builtin.apt:
+      name: haproxy
+      state: present
+
+  - name: Move haproxy template
+    ansible.builtin.template:
+      src: haproxy.cnf.j2
+      dest: /etc/haproxy/haproxy.cfg
+      mode: '0644'
+    notify: Restart haproxy
+
+  - name: Install prometheus haproxy exporter
+    ansible.builtin.apt:
+      name: prometheus-haproxy-exporter
+      state: present
+
+  - name: Move args template
+    ansible.builtin.template:
+      src: prom_haprox_exporter.conf.j2
+      dest: /etc/default/prometheus-haproxy-exporter
+      mode: '0644'      
+    notify: Restart haproxy exporter
+
+  - name: Make sure haproxy is running away!
+    ansible.builtin.service:
+      name: haproxy
+      state: started
+      enabled: true
+  
+  - name: Make sure haproxy exporter is running away!
+    ansible.builtin.service:
+      name: prometheus-haproxy-exporter
+      state: started
+      enabled: true
+
+  - name: assign cnames
+    include_role:
+      name: "cname"
+    vars:
+      service: "lb{{inventory_hostname | replace('AlecSimp','')}}"

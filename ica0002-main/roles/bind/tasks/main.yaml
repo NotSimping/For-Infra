@@ -1,0 +1,75 @@
+- name: Install Bind9 and Exporter
+  ansible.builtin.apt:
+    name: 
+      - bind9
+      - prometheus-bind-exporter
+    state: present
+
+- name: Make sure bind9 is running
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - named
+    - prometheus-bind-exporter
+
+- name: run options template
+  ansible.builtin.template:
+    src: named.conf.{{ item }}.j2
+    dest: /etc/bind/named.conf.{{ item }}
+    mode: '0644'
+  with_items:
+    - options
+    - local
+  notify: 
+    - Restart bind
+    - Restart exporter
+  no_log: true
+
+- name: run zone template
+  ansible.builtin.template:
+    src: zone.j2
+    dest: /var/cache/bind/db.bindchilling.rice
+    force: no
+  when: inventory_hostname in groups ['dns_primary']
+
+- name: Reverser template zone
+  ansible.builtin.template:
+    dest: /var/cache/bind/rev.db.bindchilling.rice
+    src: reverse.zone.conf.j2
+    force: yes
+  when: inventory_hostname in groups ['dns_primary']
+  notify: rndc reload bind9
+
+- name: install dependency for nsupdate
+  ansible.builtin.apt:
+    name: python3-dnspython
+    state: present
+
+- name: flush
+  ansible.builtin.meta: flush_handlers
+
+- name: Add A backup record on backup dns servers
+  community.general.nsupdate:
+    key_algorithm: hmac-sha256
+    key_name: nsupdatekey
+    key_secret: "{{ nsupdate_key }}"
+    record: backup
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    type: A
+    zone: "{{ domain_name }}"
+    value: "{{ backup_ip }}"
+  when: inventory_hostname in groups['dns_primary']
+
+- name: install Bind9 Exporter
+  ansible.builtin.apt:
+    name: prometheus-bind-exporter
+    state: present
+
+- name: assign cnames
+  include_role:
+    name: "cname"
+  vars:
+    service: "ns{{inventory_hostname | replace('AlecSimp','')}}"

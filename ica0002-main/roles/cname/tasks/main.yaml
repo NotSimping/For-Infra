@@ -1,0 +1,11 @@
+- name: cnames records
+  community.general.nsupdate:
+    key_algorithm: "hmac-sha256"
+    key_name: "nsupdatekey"
+    key_secret: "{{ nsupdate_key }}"
+    record: "{{ service }}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    type: CNAME
+    zone: "{{ domain_name }}"
+    value: "{{ inventory_hostname }}"

@@ -1,0 +1,73 @@
+- name: make dir for apt key
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: get grafana repository key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: '0644'
+
+- name: add grafana repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com/ stable main"
+    state: present
+    update_cache: true
+
+- name: install grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+
+- name: make sure grafana is running
+  ansible.builtin.service:
+    name: grafana-server
+    state: started
+    enabled: true
+
+- name: run grafana template
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    mode: '0644'
+  notify: Restart grafana
+
+- name: run grafana dashboard template
+  ansible.builtin.template:
+    src: dashboards.yaml
+    dest: /etc/grafana/provisioning/dashboards/dashboards.yaml
+    mode: '0644'
+  notify: Restart grafana
+
+- name: run grafana datasources template
+  ansible.builtin.template:
+    src: datasources.yaml
+    dest: /etc/grafana/provisioning/datasources/datasources.yaml
+    mode: '0644'
+  notify: Restart grafana
+
+- name: make directory for json file
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    mode: '0755'
+
+- name: copy main dashboard json file
+  ansible.builtin.copy:
+    dest: /var/lib/grafana/dashboards/
+    src: main.json
+    mode: '0755'
+
+- name: copy telegraf dashboard json file
+  ansible.builtin.copy:
+    dest: /var/lib/grafana/dashboards/
+    src: syslog.json
+    mode: '0755'
+
+- name: copy mysql dashboard json file
+  ansible.builtin.copy:
+    dest: /var/lib/grafana/dashboards/
+    src: mysql.json
+    mode: '0755'

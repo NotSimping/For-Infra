@@ -1,0 +1,23 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    uid: e91a23c9-c251-4690-aea4-62cc21dcfb51
+    url: http://prometheus/prometheus
+    editable: false
+  - name: InfluxDB:PingLatency
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    uid: aa96f849-a025-476c-8854-859a08b4add2
+    jsonData:
+      dbName: pinger_db
+  - name: InfluxDB:Telegraf
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    uid: c9f82be0-4d2a-4d88-aef0-3bd255a043dc
+    jsonData:
+      dbName: telegraf
